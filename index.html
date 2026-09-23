@@ -179,20 +179,12 @@ CONFIGURATION
 ==========================================================
 */
 
-/*
- * GitHub Pages repository base path.
- *
- * Your site:
- *
- * https://8639741727.github.io/techstore-spa-demo/
- */
-
 var BASE_PATH = "/techstore-spa-demo";
 
 
 /*
 ==========================================================
-ROUTE CONFIGURATION
+ROUTES
 ==========================================================
 */
 
@@ -227,18 +219,9 @@ var routes = {
 
 /*
 ==========================================================
-ADOBE TARGET READY CHECK
+WAIT FOR ADOBE TARGET
 ==========================================================
 */
-
-/*
- * Adobe Launch is loaded asynchronously.
- *
- * Therefore, adobe.target may not be available
- * immediately when this JavaScript executes.
- *
- * This function waits until Target is available.
- */
 
 function waitForAdobeTarget(callback) {
 
@@ -252,7 +235,8 @@ function waitForAdobeTarget(callback) {
 
         if (
             window.adobe &&
-            window.adobe.target
+            window.adobe.target &&
+            typeof adobe.target.getOffers === "function"
         ) {
 
             clearInterval(interval);
@@ -264,7 +248,6 @@ function waitForAdobeTarget(callback) {
             callback();
 
             return;
-
         }
 
 
@@ -273,7 +256,7 @@ function waitForAdobeTarget(callback) {
             clearInterval(interval);
 
             console.error(
-                "Adobe Target was not available after waiting."
+                "Adobe Target was not available."
             );
 
         }
@@ -285,20 +268,100 @@ function waitForAdobeTarget(callback) {
 
 /*
 ==========================================================
-PREFETCH TARGET VIEWS
+GET VIEW FROM CURRENT URL
 ==========================================================
 */
 
-function prefetchTargetViews() {
+function getViewFromUrl() {
+
+    var path =
+        window.location.pathname;
+
 
     if (
-        !window.adobe ||
-        !adobe.target ||
-        typeof adobe.target.getOffers !== "function"
+        path === BASE_PATH ||
+        path === BASE_PATH + "/"
     ) {
 
+        return "home";
+
+    }
+
+
+    if (
+        path === BASE_PATH + "/products"
+    ) {
+
+        return "products";
+
+    }
+
+
+    if (
+        path === BASE_PATH + "/cart"
+    ) {
+
+        return "cart";
+
+    }
+
+
+    /*
+     * Default to Home
+     */
+
+    return "home";
+
+}
+
+
+/*
+==========================================================
+SHOW DOM VIEW
+==========================================================
+*/
+
+function displayView(viewName) {
+
+    document
+        .querySelectorAll(".view")
+        .forEach(function (view) {
+
+            view.classList.remove("active");
+
+        });
+
+
+    var selectedView =
+        document.getElementById(viewName);
+
+
+    if (selectedView) {
+
+        selectedView.classList.add("active");
+
+    }
+
+}
+
+
+/*
+==========================================================
+PREFETCH CURRENT TARGET VIEW
+==========================================================
+*/
+
+function prefetchAndTriggerView(viewName) {
+
+    var route =
+        routes[viewName];
+
+
+    if (!route) {
+
         console.error(
-            "Adobe Target getOffers() is not available."
+            "Route not found:",
+            viewName
         );
 
         return;
@@ -306,10 +369,48 @@ function prefetchTargetViews() {
     }
 
 
+    /*
+    ------------------------------------------------------
+    Show the SPA view immediately
+    ------------------------------------------------------
+    */
+
+    displayView(viewName);
+
+
     console.log(
-        "Starting Adobe Target view prefetch..."
+        "=========================================="
     );
 
+    console.log(
+        "Adobe Target SPA Navigation"
+    );
+
+    console.log(
+        "=========================================="
+    );
+
+    console.log(
+        "SPA View:",
+        viewName
+    );
+
+    console.log(
+        "Target View:",
+        route.targetView
+    );
+
+    console.log(
+        "Current URL:",
+        window.location.href
+    );
+
+
+    /*
+    ------------------------------------------------------
+    PREFETCH ONLY THE CURRENT VIEW
+    ------------------------------------------------------
+    */
 
     adobe.target.getOffers({
 
@@ -320,15 +421,7 @@ function prefetchTargetViews() {
                 views: [
 
                     {
-                        name: "desktop/home"
-                    },
-
-                    {
-                        name: "desktop/products"
-                    },
-
-                    {
-                        name: "desktop/cart"
+                        name: route.targetView
                     }
 
                 ]
@@ -342,7 +435,7 @@ function prefetchTargetViews() {
     .then(function (response) {
 
         console.log(
-            "======================================"
+            "------------------------------------------"
         );
 
         console.log(
@@ -350,13 +443,19 @@ function prefetchTargetViews() {
         );
 
         console.log(
-            "======================================"
+            "------------------------------------------"
         );
 
         console.log(
             response
         );
 
+
+        /*
+        --------------------------------------------------
+        Verify prefetched view
+        --------------------------------------------------
+        */
 
         if (
             response &&
@@ -365,10 +464,7 @@ function prefetchTargetViews() {
         ) {
 
             console.log(
-                "Prefetched Target Views:"
-            );
-
-            console.log(
+                "Prefetched Views:",
                 response.prefetch.views
             );
 
@@ -386,21 +482,38 @@ function prefetchTargetViews() {
                 }
             );
 
-        } else {
-
-            console.warn(
-                "No prefetch views found in response."
-            );
-
         }
 
 
         /*
-         * Once prefetch is complete,
-         * display the correct initial view.
-         */
+        --------------------------------------------------
+        Trigger the same view
+        --------------------------------------------------
+        */
 
-        initializeCurrentView();
+        if (
+            window.adobe &&
+            adobe.target &&
+            typeof adobe.target.triggerView === "function"
+        ) {
+
+            adobe.target.triggerView(
+                route.targetView
+            );
+
+
+            console.log(
+                "Adobe Target triggerView() fired:",
+                route.targetView
+            );
+
+        } else {
+
+            console.warn(
+                "Adobe Target triggerView() is not available."
+            );
+
+        }
 
     })
 
@@ -411,88 +524,7 @@ function prefetchTargetViews() {
             error
         );
 
-
-        /*
-         * Even if prefetch fails,
-         * initialize the SPA.
-         */
-
-        initializeCurrentView();
-
     });
-
-}
-
-
-/*
-==========================================================
-GET CURRENT VIEW FROM URL
-==========================================================
-*/
-
-function getViewFromUrl() {
-
-    var currentPath =
-        window.location.pathname;
-
-
-    console.log(
-        "Current browser path:",
-        currentPath
-    );
-
-
-    /*
-     * Home
-     */
-
-    if (
-        currentPath === BASE_PATH ||
-        currentPath === BASE_PATH + "/"
-    ) {
-
-        return "home";
-
-    }
-
-
-    /*
-     * Products
-     */
-
-    if (
-        currentPath === BASE_PATH + "/products"
-    ) {
-
-        return "products";
-
-    }
-
-
-    /*
-     * Cart
-     */
-
-    if (
-        currentPath === BASE_PATH + "/cart"
-    ) {
-
-        return "cart";
-
-    }
-
-
-    /*
-     * Unknown URL
-     *
-     * Default to Home.
-     */
-
-    console.warn(
-        "Unknown route. Defaulting to Home."
-    );
-
-    return "home";
 
 }
 
@@ -512,7 +544,7 @@ function navigateTo(viewName) {
     if (!route) {
 
         console.error(
-            "Route not found:",
+            "Unknown route:",
             viewName
         );
 
@@ -521,38 +553,8 @@ function navigateTo(viewName) {
     }
 
 
-    console.log(
-        "======================================"
-    );
-
-    console.log(
-        "SPA Navigation"
-    );
-
-    console.log(
-        "======================================"
-    );
-
-    console.log(
-        "View:",
-        viewName
-    );
-
-    console.log(
-        "URL:",
-        route.url
-    );
-
-    console.log(
-        "Target View:",
-        route.targetView
-    );
-
-
     /*
-     * Update browser URL
-     *
-     * No page reload.
+     * Update browser URL without reload
      */
 
     history.pushState(
@@ -568,153 +570,19 @@ function navigateTo(viewName) {
     );
 
 
-    /*
-     * Display SPA view
-     */
-
-    showView(viewName);
-
-}
-
-
-/*
-==========================================================
-SHOW VIEW
-==========================================================
-*/
-
-function showView(viewName) {
-
-    var route =
-        routes[viewName];
-
-
-    if (!route) {
-
-        console.error(
-            "Cannot show unknown view:",
-            viewName
-        );
-
-        return;
-
-    }
+    console.log(
+        "Navigating to:",
+        route.url
+    );
 
 
     /*
-     * Hide all views
+     * Prefetch only this view
      */
 
-    document
-        .querySelectorAll(".view")
-        .forEach(function (view) {
-
-            view.classList.remove("active");
-
-        });
-
-
-    /*
-     * Show selected view
-     */
-
-    var selectedView =
-        document.getElementById(viewName);
-
-
-    if (!selectedView) {
-
-        console.error(
-            "DOM element not found:",
-            viewName
-        );
-
-        return;
-
-    }
-
-
-    selectedView.classList.add("active");
-
-
-    console.log(
-        "--------------------------------------"
-    );
-
-    console.log(
-        "Showing SPA View"
-    );
-
-    console.log(
-        "--------------------------------------"
-    );
-
-    console.log(
-        "Browser URL:",
-        window.location.href
-    );
-
-    console.log(
-        "SPA View:",
+    prefetchAndTriggerView(
         viewName
     );
-
-    console.log(
-        "Adobe Target View:",
-        route.targetView
-    );
-
-
-    /*
-     * Trigger Adobe Target View
-     */
-
-    if (
-        window.adobe &&
-        window.adobe.target &&
-        typeof adobe.target.triggerView === "function"
-    ) {
-
-        adobe.target.triggerView(
-            route.targetView
-        );
-
-
-        console.log(
-            "Adobe Target triggerView() fired:",
-            route.targetView
-        );
-
-    } else {
-
-        console.warn(
-            "Adobe Target triggerView() is not available."
-        );
-
-    }
-
-}
-
-
-/*
-==========================================================
-INITIALIZE CURRENT VIEW
-==========================================================
-*/
-
-function initializeCurrentView() {
-
-    var initialView =
-        getViewFromUrl();
-
-
-    console.log(
-        "Initial SPA View:",
-        initialView
-    );
-
-
-    showView(initialView);
 
 }
 
@@ -730,7 +598,7 @@ window.addEventListener(
     function () {
 
         console.log(
-            "Browser Back/Forward detected."
+            "Browser Back / Forward detected."
         );
 
 
@@ -738,7 +606,9 @@ window.addEventListener(
             getViewFromUrl();
 
 
-        showView(viewName);
+        prefetchAndTriggerView(
+            viewName
+        );
 
     }
 );
@@ -755,7 +625,7 @@ window.addEventListener(
     function () {
 
         console.log(
-            "======================================"
+            "=========================================="
         );
 
         console.log(
@@ -763,19 +633,34 @@ window.addEventListener(
         );
 
         console.log(
-            "======================================"
+            "=========================================="
         );
 
-
-        /*
-         * Wait for Adobe Target,
-         * then prefetch all Target views.
-         */
 
         waitForAdobeTarget(
             function () {
 
-                prefetchTargetViews();
+                /*
+                 * Determine current page
+                 */
+
+                var initialView =
+                    getViewFromUrl();
+
+
+                console.log(
+                    "Initial SPA View:",
+                    initialView
+                );
+
+
+                /*
+                 * Prefetch ONLY initial view
+                 */
+
+                prefetchAndTriggerView(
+                    initialView
+                );
 
             }
         );
