@@ -1,80 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="https://assets.adobedtm.com/83206ba1ed8f/a1f0eb867634/launch-e350af4a2689-development.min.js" async></script>
+
+<script src="https://assets.adobedtm.com/83206ba1ed8f/a1f0eb867634/launch-e350af4a2689-development.min.js" async></script>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>TechStore SPA Demo</title>
 
 <style>
-body{
+body {
     font-family: Arial, sans-serif;
-    margin:0;
-    padding:0;
+    margin: 0;
+    padding: 0;
 }
 
-header{
-    background:#222;
-    color:#fff;
-    padding:15px;
+header {
+    background: #222;
+    color: #fff;
+    padding: 15px;
 }
 
-nav{
-    display:flex;
-    gap:15px;
+nav {
+    display: flex;
+    gap: 15px;
 }
 
-nav button{
-    padding:10px 20px;
-    cursor:pointer;
+nav button {
+    padding: 10px 20px;
+    cursor: pointer;
 }
 
-#app{
-    padding:40px;
+#app {
+    padding: 40px;
 }
 
-.view{
-    display:none;
+.view {
+    display: none;
 }
 
-.view.active{
-    display:block;
+.view.active {
+    display: block;
 }
 
-.card{
-    border:1px solid #ddd;
-    padding:20px;
-    margin-top:20px;
+.card {
+    border: 1px solid #ddd;
+    padding: 20px;
+    margin-top: 20px;
 }
 </style>
+
 </head>
+
 <body>
 
 <header>
+
     <h1>TechStore SPA Demo</h1>
 
     <nav>
-        <button onclick="showView('home')">Home</button>
-        <button onclick="showView('products')">Products</button>
-        <button onclick="showView('cart')">Cart</button>
+
+        <button onclick="navigateTo('home')">
+            Home
+        </button>
+
+        <button onclick="navigateTo('products')">
+            Products
+        </button>
+
+        <button onclick="navigateTo('cart')">
+            Cart
+        </button>
+
     </nav>
+
 </header>
+
 
 <div id="app">
 
     <!-- Home View -->
+
     <section id="home" class="view active">
+
         <h2>Home View</h2>
+
         <p>Welcome to TechStore.</p>
 
         <div class="card">
             Home Banner Content
         </div>
+
     </section>
 
+
     <!-- Products View -->
+
     <section id="products" class="view">
+
         <h2>Products View</h2>
+
         <p>Browse our products.</p>
 
         <div class="card">
@@ -84,53 +110,289 @@ nav button{
         <div class="card">
             Samsung S26
         </div>
+
     </section>
 
+
     <!-- Cart View -->
+
     <section id="cart" class="view">
+
         <h2>Cart View</h2>
+
         <p>Your selected products appear here.</p>
 
         <div class="card">
             Cart is empty
         </div>
+
     </section>
 
 </div>
 
+
 <script>
 
-function showView(viewName){
+/*
+========================================================
+SPA ROUTE CONFIGURATION
+========================================================
+*/
 
-    document.querySelectorAll('.view').forEach(function(view){
-        view.classList.remove('active');
-    });
+var routes = {
 
-    document.getElementById(viewName).classList.add('active');
+    home: {
+        url: "/",
+        targetView: "home"
+    },
 
-    console.log('Triggering View:', viewName);
+    products: {
+        url: "/products",
+        targetView: "products"
+    },
 
-    if(window.adobe &&
-       adobe.target &&
-       typeof adobe.target.triggerView === 'function'){
-
-        adobe.target.triggerView(viewName);
-
-        console.log('Adobe Target View Fired:', viewName);
+    cart: {
+        url: "/cart",
+        targetView: "cart"
     }
+
+};
+
+
+/*
+========================================================
+NAVIGATION FUNCTION
+========================================================
+*/
+
+function navigateTo(viewName) {
+
+    var route = routes[viewName];
+
+    if (!route) {
+
+        console.error("Route not found:", viewName);
+
+        return;
+    }
+
+
+    /*
+    ----------------------------------------------------
+    1. Update Browser URL
+    ----------------------------------------------------
+    */
+
+    history.pushState(
+        {
+            view: viewName
+        },
+        "",
+        route.url
+    );
+
+
+    /*
+    ----------------------------------------------------
+    2. Display the SPA View
+    ----------------------------------------------------
+    */
+
+    showView(viewName);
+
 }
 
-// Initial View
-window.addEventListener('load', function(){
 
-    if(window.adobe &&
-       adobe.target &&
-       typeof adobe.target.triggerView === 'function'){
+/*
+========================================================
+SHOW VIEW
+========================================================
+*/
 
-        adobe.target.triggerView('home');
+function showView(viewName) {
 
-        console.log('Adobe Target View Fired: home');
+    var route = routes[viewName];
+
+    if (!route) {
+
+        console.error("View not found:", viewName);
+
+        return;
     }
+
+
+    /*
+    ----------------------------------------------------
+    Hide all views
+    ----------------------------------------------------
+    */
+
+    document.querySelectorAll(".view").forEach(function(view) {
+
+        view.classList.remove("active");
+
+    });
+
+
+    /*
+    ----------------------------------------------------
+    Show selected view
+    ----------------------------------------------------
+    */
+
+    var selectedView = document.getElementById(viewName);
+
+    if (selectedView) {
+
+        selectedView.classList.add("active");
+
+    }
+
+
+    console.log(
+        "Current URL:",
+        window.location.pathname
+    );
+
+
+    console.log(
+        "Adobe Target View:",
+        route.targetView
+    );
+
+
+    /*
+    ----------------------------------------------------
+    Adobe Target triggerView()
+    ----------------------------------------------------
+    */
+
+    if (
+        window.adobe &&
+        adobe.target &&
+        typeof adobe.target.triggerView === "function"
+    ) {
+
+        adobe.target.triggerView(route.targetView);
+
+        console.log(
+            "Adobe Target View Fired:",
+            route.targetView
+        );
+
+    } else {
+
+        console.warn(
+            "Adobe Target triggerView() is not available yet."
+        );
+
+    }
+
+}
+
+
+/*
+========================================================
+BROWSER BACK / FORWARD BUTTON
+========================================================
+*/
+
+window.addEventListener("popstate", function(event) {
+
+    var path = window.location.pathname;
+
+    var viewName = "home";
+
+
+    /*
+    Map URL → SPA View
+    */
+
+    if (path === "/products") {
+
+        viewName = "products";
+
+    } else if (path === "/cart") {
+
+        viewName = "cart";
+
+    } else {
+
+        viewName = "home";
+
+    }
+
+
+    console.log(
+        "Browser navigation detected:",
+        path
+    );
+
+
+    showView(viewName);
+
+});
+
+
+/*
+========================================================
+INITIAL PAGE LOAD
+========================================================
+*/
+
+window.addEventListener("load", function() {
+
+    var path = window.location.pathname;
+
+    var initialView = "home";
+
+
+    /*
+    Determine initial view from URL
+    */
+
+    if (path === "/products") {
+
+        initialView = "products";
+
+    } else if (path === "/cart") {
+
+        initialView = "cart";
+
+    }
+
+
+    console.log(
+        "Initial URL:",
+        path
+    );
+
+
+    console.log(
+        "Initial Adobe Target View:",
+        initialView
+    );
+
+
+    /*
+    Trigger initial Target view
+    */
+
+    if (
+        window.adobe &&
+        adobe.target &&
+        typeof adobe.target.triggerView === "function"
+    ) {
+
+        adobe.target.triggerView(initialView);
+
+        console.log(
+            "Adobe Target View Fired:",
+            initialView
+        );
+
+    }
+
 });
 
 </script>
