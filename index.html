@@ -2,7 +2,16 @@
 <html lang="en">
 
 <head>
-
+<!-- Restore deep-link URL (GitHub Pages SPA fix) -->
+    <script>
+        (function () {
+            var redirect = sessionStorage.getItem("spaRedirect");
+            if (redirect) {
+                sessionStorage.removeItem("spaRedirect");
+                history.replaceState(null, "", "/techstore-spa-demo" + redirect);
+            }
+        })();
+    </script>
     <!-- Adobe Launch / Data Collection -->
     <script
         src="https://assets.adobedtm.com/83206ba1ed8f/a1f0eb867634/launch-e350af4a2689-development.min.js"
