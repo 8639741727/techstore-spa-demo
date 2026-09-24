@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Redirecting...</title>
+    <script>
+        // GitHub Pages serves this file for any unknown URL.
+        // Save the page the user wanted, then send them to index.html.
+        var BASE_PATH = "/techstore-spa-demo";
+
+        var requestedPath =
+            window.location.pathname.slice(BASE_PATH.length) || "/";
+
+        sessionStorage.setItem(
+            "spaRedirect",
+            requestedPath + window.location.search + window.location.hash
+        );
+
+        window.location.replace(BASE_PATH + "/");
+    </script>
+</head>
+<body></body>
+</html>
